@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocForge.App", "src\DocForge.App\DocForge.App.csproj", "{F6BE9F83-FB82-4E96-9976-49E71F46154D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F6BE9F83-FB82-4E96-9976-49E71F46154D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6BE9F83-FB82-4E96-9976-49E71F46154D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6BE9F83-FB82-4E96-9976-49E71F46154D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6BE9F83-FB82-4E96-9976-49E71F46154D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
