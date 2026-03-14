@@ -1,0 +1,51 @@
+﻿<Window x:Class="DocForge.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="DocForge"
+        Height="700"
+        Width="1100"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="DocForge"
+                   FontSize="28"
+                   FontWeight="Bold"
+                   Margin="0,0,0,16"/>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,16">
+            <Button Content="Browse PDF"
+                    Width="120"
+                    Margin="0,0,8,0"/>
+
+            <Button Content="Extract Text"
+                    Width="120"
+                    Margin="0,0,8,0"/>
+
+            <Button Content="Export TXT"
+                    Width="120"/>
+        </StackPanel>
+
+        <TextBox Grid.Row="2"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap"
+                 IsReadOnly="True"/>
+
+        <StatusBar Grid.Row="3" Margin="0,12,0,0">
+            <StatusBarItem Content="Ready" />
+        </StatusBar>
+    </Grid>
+</Window>
