@@ -38,6 +38,7 @@
         </StackPanel>
 
         <TextBox Grid.Row="2"
+                 Text="{Binding ExtractedText}"
                  AcceptsReturn="True"
                  VerticalScrollBarVisibility="Auto"
                  HorizontalScrollBarVisibility="Auto"
@@ -45,7 +46,7 @@
                  IsReadOnly="True"/>
 
         <StatusBar Grid.Row="3" Margin="0,12,0,0">
-            <StatusBarItem Content="Ready" />
+            <StatusBarItem Content="{Binding StatusMessage}" />
         </StatusBar>
     </Grid>
 </Window>

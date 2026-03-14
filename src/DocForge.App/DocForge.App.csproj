@@ -14,7 +14,6 @@
       <Folder Include="Resources\" />
       <Folder Include="Services\" />
       <Folder Include="Styles\" />
-      <Folder Include="ViewModels\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -23,6 +22,10 @@
         <XamlRuntime>Wpf</XamlRuntime>
         <SubType>Designer</SubType>
       </Page>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     </ItemGroup>
 
 </Project>
