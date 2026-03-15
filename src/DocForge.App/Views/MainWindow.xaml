@@ -23,21 +23,26 @@
                    Margin="0,0,0,16"/>
 
         <StackPanel Grid.Row="1"
-                    Orientation="Horizontal"
                     Margin="0,0,0,16">
-            <Button Content="Browse PDF"
-                    Command="{Binding BrowsePdfCommand}"
-                    Width="120"
-                    Margin="0,0,8,0"/>
+            <TextBox Text="{Binding SelectedFilePath}"
+                     IsReadOnly="True"
+                     Margin="0,0,0,8"/>
 
-            <Button Content="Extract Text"
-                    Command="{Binding ExtractTextCommand}"
-                    Width="120"
-                    Margin="0,0,8,0"/>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Browse PDF"
+                        Command="{Binding BrowsePdfCommand}"
+                        Width="120"
+                        Margin="0,0,8,0"/>
 
-            <Button Content="Export TXT"
-                    Command="{Binding ExportTxtCommand}"
-                    Width="120"/>
+                <Button Content="Extract Text"
+                        Command="{Binding ExtractTextCommand}"
+                        Width="120"
+                        Margin="0,0,8,0"/>
+
+                <Button Content="Export TXT"
+                        Command="{Binding ExportTxtCommand}"
+                        Width="120"/>
+            </StackPanel>
         </StackPanel>
 
         <TextBox Grid.Row="2"
