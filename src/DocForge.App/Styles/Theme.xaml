@@ -107,4 +107,24 @@
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Padding" Value="16" />
     </Style>
+    
+    <SolidColorBrush x:Key="SelectedActionBrush" Color="#60A5FA"/>
+    <SolidColorBrush x:Key="SelectedActionHoverBrush" Color="#93C5FD"/>
+    <SolidColorBrush x:Key="SelectedActionPressedBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="SelectedActionForegroundBrush" Color="#0B1220"/>
+
+    <Style x:Key="SelectedActionButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource SelectedActionBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource SelectedActionForegroundBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SelectedActionHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource SelectedActionPressedBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

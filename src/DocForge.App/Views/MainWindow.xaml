@@ -4,218 +4,231 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="{Binding PreviewTitle}"
-        Height="900"
-        Width="1200"
+        Title="DocForge"
+        Height="920"
+        Width="1380"
         MinHeight="760"
-        MinWidth="950"
-        WindowStartupLocation="CenterScreen">
+        MinWidth="1100"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop">
 
-    <Grid Margin="24">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="3*"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="2.4*"/>
-            <RowDefinition Height="16"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="14"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
+        <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}">
             <StackPanel>
                 <TextBlock Text="DocForge"
-                           FontSize="30"
+                           FontSize="28"
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}"/>
 
-                <TextBlock Text="Extract text from PDF files, reconstruct paragraphs, export to TXT or DOCX, and generate a local AI summary."
-                           Margin="0,6,0,0"
+                <TextBlock Text="Drop one or many PDFs into the window. Extract text, generate local AI summaries, and export each file automatically next to the original PDF."
+                           Margin="0,6,0,14"
                            FontSize="14"
                            Foreground="{StaticResource TextSecondaryBrush}"/>
-            </StackPanel>
-
-            <Border Grid.Column="1"
-                    Style="{StaticResource CardBorderStyle}"
-                    Padding="12,8">
-                <TextBlock Text="{Binding IsBusy, StringFormat=Working: {0}}"
-                           FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
-            <StackPanel>
-                <TextBlock Text="Selected PDF"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}"
-                           Margin="0,0,0,10"/>
-
-                <TextBlock Text="{Binding SelectedFileName}"
-                           Margin="0,0,0,8"
-                           FontSize="13"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}"/>
-
-                <TextBox Text="{Binding SelectedFilePath}"
-                         Style="{StaticResource ReadOnlyTextBoxStyle}"
-                         IsReadOnly="True"
-                         Margin="0,0,0,12"/>
 
                 <WrapPanel>
-                    <Button Content="Browse PDF"
+                    <Button Content="Add PDFs"
                             Command="{Binding BrowsePdfCommand}"
                             Style="{StaticResource PrimaryButtonStyle}"
-                            Width="130"/>
+                            Width="120"/>
 
-                    <Button Content="Extract Text"
-                            Command="{Binding ExtractTextCommand}"
+                    <Button Content="Extract All"
+                            Command="{Binding ExtractAllCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
-                            Width="130"/>
+                            Width="120"/>
 
-                    <Button Content="Export TXT"
-                            Command="{Binding ExportTxtCommand}"
+                    <Button Content="Generate Selected AI Summary"
+                            Command="{Binding GenerateSelectedAiSummaryCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
-                            Width="130"/>
+                            Width="210"
+                            IsEnabled="{Binding IsAiSummaryAvailable}"/>
 
-                    <Button Content="Export DOCX"
-                            Command="{Binding ExportDocxCommand}"
+                    <Button Content="Generate All AI Summaries"
+                            Command="{Binding GenerateAllAiSummariesCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
-                            Width="130"
+                            Width="195"
+                            IsEnabled="{Binding IsAiSummaryAvailable}"/>
+
+                    <Button Content="Clear"
+                            Command="{Binding ClearDocumentsCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="100"
                             Margin="0"/>
                 </WrapPanel>
+
+                <TextBlock Text="{Binding AiSummaryStatus}"
+                           Margin="0,12,0,0"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="4" Style="{StaticResource CardBorderStyle}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="12"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <TextBlock Text="Extracted Text Preview"
+                    <TextBlock Grid.Row="0"
+                               Text="Loaded PDFs"
                                FontSize="14"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}"/>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock Text="{Binding ExtractedLineCount, StringFormat=Lines: {0}}"
-                                   Margin="0,0,12,0"
-                                   FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-
-                        <TextBlock Text="{Binding ExtractedCharacterCount, StringFormat=Characters: {0}}"
-                                   FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding Documents}"
+                             SelectedItem="{Binding SelectedDocument}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10" Margin="0,0,0,8" Style="{StaticResource CardBorderStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FileName}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Status}"
+                                                   Margin="0,4,0,0"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
+            </Border>
 
-                <Grid Grid.Row="2">
-                    <TextBox Text="{Binding ExtractedText}"
-                             Style="{StaticResource ReadOnlyTextBoxStyle}"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             TextWrapping="Wrap"
-                             IsReadOnly="True"/>
-
-                    <TextBlock Text="{Binding PreviewPlaceholder}"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="14"
-                               Foreground="{StaticResource TextSecondaryBrush}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasExtractedText}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Grid>
-
-                <TextBlock Grid.Row="4"
-                           Text="The preview reflects the extracted embedded text from the selected PDF."
-                           FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="6" Style="{StaticResource CardBorderStyle}">
-            <Grid>
+            <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="1.25*"/>
+                    <RowDefinition Height="14"/>
+                    <RowDefinition Height="1*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0"
-                           Text="AI Summary"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="2">
-                    <TextBlock Text="{Binding AiSummaryStatus}"
-                               Margin="0,0,0,10"
-                               FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0"
+                                   Text="{Binding SelectedFileName, StringFormat=Extracted Text - {0}}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
 
-                    <WrapPanel Margin="0,0,0,10">
-                        <Button Content="Generate AI Summary"
-                                Command="{Binding GenerateAiSummaryCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Width="170"
-                                IsEnabled="{Binding IsAiSummaryAvailable}" />
+                        <WrapPanel Grid.Row="2">
+                            <Button Content="Export Selected TXT"
+                                    Command="{Binding ExportSelectedTextTxtCommand}"
+                                    Style="{StaticResource SelectedActionButtonStyle}"
+                                    Width="150"/>
 
-                        <Button Content="Export Summary TXT"
-                                Command="{Binding ExportAiSummaryTxtCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Width="165" />
+                            <Button Content="Export Selected DOCX"
+                                    Command="{Binding ExportSelectedTextDocxCommand}"
+                                    Style="{StaticResource SelectedActionButtonStyle}"
+                                    Width="160"/>
 
-                        <Button Content="Export Summary DOCX"
-                                Command="{Binding ExportAiSummaryDocxCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Width="175"
-                                Margin="0" />
-                    </WrapPanel>
-                </StackPanel>
+                            <Button Content="Export All TXT"
+                                    Command="{Binding ExportAllTextTxtCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="130"/>
 
-                <TextBox Grid.Row="4"
-                         Text="{Binding AiSummaryResult}"
-                         Style="{StaticResource ReadOnlyTextBoxStyle}"
-                         AcceptsReturn="True"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         TextWrapping="Wrap"
-                         IsReadOnly="True"/>
+                            <Button Content="Export All DOCX"
+                                    Command="{Binding ExportAllTextDocxCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="140"
+                                    Margin="0"/>
+                        </WrapPanel>
+
+                        <TextBox Grid.Row="4"
+                                 Text="{Binding ExtractedTextPreview, Mode=OneWay}"
+                                 Style="{StaticResource ReadOnlyTextBoxStyle}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 IsReadOnly="True"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Text="{Binding SelectedFileName, StringFormat=AI Summary - {0}}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <WrapPanel Grid.Row="2">
+                            <Button Content="Export Selected Summary TXT"
+                                    Command="{Binding ExportSelectedAiSummaryTxtCommand}"
+                                    Style="{StaticResource SelectedActionButtonStyle}"
+                                    Width="190"/>
+
+                            <Button Content="Export Selected Summary DOCX"
+                                    Command="{Binding ExportSelectedAiSummaryDocxCommand}"
+                                    Style="{StaticResource SelectedActionButtonStyle}"
+                                    Width="200"/>
+
+                            <Button Content="Export All Summary TXT"
+                                    Command="{Binding ExportAllAiSummaryTxtCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="180"/>
+
+                            <Button Content="Export All Summary DOCX"
+                                    Command="{Binding ExportAllAiSummaryDocxCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="190"
+                                    Margin="0"/>
+                        </WrapPanel>
+
+                        <TextBox Grid.Row="4"
+                                 Text="{Binding AiSummaryPreview, Mode=OneWay}"
+                                 Style="{StaticResource ReadOnlyTextBoxStyle}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 IsReadOnly="True"/>
+                    </Grid>
+                </Border>
             </Grid>
-        </Border>
+        </Grid>
 
-        <Border Grid.Row="8" Style="{StaticResource CardBorderStyle}" Padding="12,10">
+        <Border Grid.Row="4" Style="{StaticResource CardBorderStyle}" Padding="12,10">
             <TextBlock Text="{Binding StatusMessage}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondaryBrush}"/>

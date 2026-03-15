@@ -3,7 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using DocForge.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 
 namespace DocForge.App.ViewModels;
 
@@ -16,56 +18,22 @@ public partial class MainViewModel : ObservableObject
     private readonly ISummaryService _summaryService;
     private readonly ILogger<MainViewModel> _logger;
 
+    public ObservableCollection<ProcessedPdfItem> Documents { get; } = new();
+
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
+    private ProcessedPdfItem? selectedDocument;
+
+    [ObservableProperty]
     private bool isAiSummaryAvailable;
 
     [ObservableProperty]
     private string aiSummaryStatus = "Checking Ollama...";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryTxtCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryDocxCommand))]
-    private string aiSummaryResult = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(BrowsePdfCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
-    private string selectedFilePath = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
-    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
-    private string extractedText = string.Empty;
-
-    [ObservableProperty]
     private string statusMessage = "Ready";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(BrowsePdfCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
-    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryTxtCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryDocxCommand))]
     private bool isBusy;
-
-    partial void OnSelectedFilePathChanged(string value)
-    {
-        OnPropertyChanged(nameof(SelectedFileName));
-        OnPropertyChanged(nameof(PreviewTitle));
-    }
-
-    partial void OnExtractedTextChanged(string value)
-    {
-        OnPropertyChanged(nameof(ExtractedCharacterCount));
-        OnPropertyChanged(nameof(ExtractedLineCount));
-        OnPropertyChanged(nameof(HasExtractedText));
-    }
 
     public MainViewModel(
         IPdfTextExtractor pdfTextExtractor,
@@ -83,52 +51,33 @@ public partial class MainViewModel : ObservableObject
         _logger = logger;
     }
 
+    partial void OnSelectedDocumentChanged(ProcessedPdfItem? value)
+    {
+        OnPropertyChanged(nameof(SelectedFileName));
+        OnPropertyChanged(nameof(ExtractedTextPreview));
+        OnPropertyChanged(nameof(AiSummaryPreview));
+        OnPropertyChanged(nameof(HasSelectedDocument));
+        OnPropertyChanged(nameof(HasExtractedText));
+        OnPropertyChanged(nameof(HasAiSummary));
+    }
+
     public string SelectedFileName =>
-        string.IsNullOrWhiteSpace(SelectedFilePath)
-            ? "No file selected"
-            : Path.GetFileName(SelectedFilePath);
+        SelectedDocument?.FileName ?? "No file selected";
 
-    public string PreviewTitle =>
-        string.IsNullOrWhiteSpace(SelectedFilePath)
-            ? "DocForge"
-            : $"DocForge - {Path.GetFileName(SelectedFilePath)}";
+    public string ExtractedTextPreview =>
+        SelectedDocument?.ExtractedText ?? string.Empty;
 
-    public int ExtractedCharacterCount =>
-        string.IsNullOrEmpty(ExtractedText) ? 0 : ExtractedText.Length;
+    public string AiSummaryPreview =>
+        SelectedDocument?.AiSummary ?? string.Empty;
 
-    public int ExtractedLineCount =>
-        string.IsNullOrWhiteSpace(ExtractedText)
-            ? 0
-            : ExtractedText.Replace("\r\n", "\n").Split('\n').Length;
+    public bool HasSelectedDocument =>
+        SelectedDocument is not null;
 
     public bool HasExtractedText =>
-        !string.IsNullOrWhiteSpace(ExtractedText);
+        !string.IsNullOrWhiteSpace(SelectedDocument?.ExtractedText);
 
     public bool HasAiSummary =>
-        !string.IsNullOrWhiteSpace(AiSummaryResult);
-
-    public string PreviewPlaceholder =>
-        "Extracted text preview will appear here.";
-
-    private bool CanBrowsePdf() => !IsBusy;
-
-    private bool CanExtractText() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(SelectedFilePath);
-
-    private bool CanExportTxt() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(ExtractedText);
-
-    private bool CanExportDocx() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(ExtractedText);
-
-    private bool CanGenerateAiSummary() =>
-        !IsBusy && IsAiSummaryAvailable && !string.IsNullOrWhiteSpace(ExtractedText);
-
-    private bool CanExportAiSummaryTxt() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(AiSummaryResult);
-
-    private bool CanExportAiSummaryDocx() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(AiSummaryResult);
+        !string.IsNullOrWhiteSpace(SelectedDocument?.AiSummary);
 
     public async Task InitializeAsync()
     {
@@ -138,53 +87,109 @@ public partial class MainViewModel : ObservableObject
             : "AI Summary requires Ollama running locally";
     }
 
-    [RelayCommand(CanExecute = nameof(CanBrowsePdf))]
-    private void BrowsePdf()
+    [RelayCommand]
+    private async Task BrowsePdfAsync()
     {
         var dialog = new OpenFileDialog
         {
             Filter = "PDF files (*.pdf)|*.pdf",
-            Multiselect = false,
-            Title = "Select a PDF file"
+            Multiselect = true,
+            Title = "Select one or more PDF files"
         };
 
-        if (dialog.ShowDialog() == true)
-        {
-            SelectedFilePath = dialog.FileName;
-            StatusMessage = "PDF selected";
-            _logger.LogInformation("PDF selected: {FilePath}", SelectedFilePath);
-        }
+        if (dialog.ShowDialog() != true)
+            return;
+
+        await AddPdfFilesAsync(dialog.FileNames);
     }
 
-    [RelayCommand(CanExecute = nameof(CanExtractText))]
-    private async Task ExtractTextAsync()
+    public Task AddPdfFilesAsync(IEnumerable<string> paths)
     {
+        var validPaths = paths
+            .Where(File.Exists)
+            .Where(p => string.Equals(Path.GetExtension(p), ".pdf", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (validPaths.Count == 0)
+        {
+            StatusMessage = "No valid PDF files found";
+            return Task.CompletedTask;
+        }
+
+        int added = 0;
+
+        foreach (var path in validPaths)
+        {
+            if (Documents.Any(d => string.Equals(d.SourceFilePath, path, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            Documents.Add(new ProcessedPdfItem
+            {
+                SourceFilePath = path,
+                Status = "Pending"
+            });
+
+            added++;
+        }
+
+        if (SelectedDocument is null && Documents.Count > 0)
+            SelectedDocument = Documents[0];
+
+        StatusMessage = added > 0
+            ? $"{added} PDF(s) added"
+            : "All dropped PDFs were already loaded";
+
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private void ClearDocuments()
+    {
+        Documents.Clear();
+        SelectedDocument = null;
+        StatusMessage = "Document list cleared";
+    }
+
+    [RelayCommand]
+    private async Task ExtractAllAsync()
+    {
+        if (Documents.Count == 0 || IsBusy)
+            return;
+
         try
         {
             IsBusy = true;
-            StatusMessage = "Extracting text...";
-            _logger.LogInformation("Starting text extraction for {FilePath}", SelectedFilePath);
+            StatusMessage = $"Extracting text from {Documents.Count} PDF(s)...";
 
-            var result = await _pdfTextExtractor.ExtractTextAsync(SelectedFilePath);
-
-            if (!result.Success)
+            foreach (var document in Documents)
             {
-                StatusMessage = result.ErrorMessage ?? "Extraction failed";
-                _logger.LogError("Extraction failed for {FilePath}. Error: {Error}", SelectedFilePath, result.ErrorMessage);
-                return;
+                document.Status = "Extracting...";
+
+                var result = await _pdfTextExtractor.ExtractTextAsync(document.SourceFilePath);
+
+                if (!result.Success)
+                {
+                    document.Status = $"Error: {result.ErrorMessage}";
+                    _logger.LogError("Extraction failed for {FilePath}. Error: {Error}",
+                        document.SourceFilePath, result.ErrorMessage);
+                    continue;
+                }
+
+                document.ExtractedText = _textStructureReconstructor.Reconstruct(result.ExtractedText);
+                document.IsExtracted = true;
+                document.Status = $"Extracted ({result.PageCount} pages)";
             }
 
-            ExtractedText = _textStructureReconstructor.Reconstruct(result.ExtractedText);
-            AiSummaryResult = string.Empty;
-            OnPropertyChanged(nameof(HasAiSummary));
+            OnPropertyChanged(nameof(ExtractedTextPreview));
+            OnPropertyChanged(nameof(HasExtractedText));
 
-            StatusMessage = $"Extracted {result.PageCount} pages";
-            _logger.LogInformation("Extraction completed for {FilePath}. Pages: {PageCount}", SelectedFilePath, result.PageCount);
+            StatusMessage = "Extraction finished";
         }
         catch (Exception ex)
         {
             StatusMessage = "Unexpected error during extraction";
-            _logger.LogError(ex, "Unexpected error during extraction for {FilePath}", SelectedFilePath);
+            _logger.LogError(ex, "Unexpected error during multi-PDF extraction");
         }
         finally
         {
@@ -192,85 +197,23 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanExportTxt))]
-    private async Task ExportTxtAsync()
+    [RelayCommand]
+    private async Task GenerateSelectedAiSummaryAsync()
     {
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Text file (*.txt)|*.txt",
-            FileName = "extracted-text.txt",
-            Title = "Save extracted text"
-        };
-
-        if (dialog.ShowDialog() != true)
+        if (IsBusy || SelectedDocument is null || string.IsNullOrWhiteSpace(SelectedDocument.ExtractedText) || !IsAiSummaryAvailable)
             return;
 
         try
         {
             IsBusy = true;
-            StatusMessage = "Exporting TXT...";
-            _logger.LogInformation("Starting TXT export to {DestinationPath}", dialog.FileName);
+            StatusMessage = $"Generating AI summary for {SelectedDocument.FileName}...";
+            SelectedDocument.Status = "Generating AI summary...";
 
-            await _textExportService.ExportAsync(dialog.FileName, ExtractedText);
+            SelectedDocument.AiSummary = await _summaryService.SummarizeAsync(SelectedDocument.ExtractedText);
+            SelectedDocument.IsAiSummarized = !string.IsNullOrWhiteSpace(SelectedDocument.AiSummary);
+            SelectedDocument.Status = "AI summary generated";
 
-            StatusMessage = "TXT exported successfully";
-            _logger.LogInformation("TXT export completed to {DestinationPath}", dialog.FileName);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Unexpected error during TXT export";
-            _logger.LogError(ex, "Unexpected error during TXT export to {DestinationPath}", dialog.FileName);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanExportDocx))]
-    private async Task ExportDocxAsync()
-    {
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Word document (*.docx)|*.docx",
-            FileName = "extracted-text.docx",
-            Title = "Save extracted text as DOCX"
-        };
-
-        if (dialog.ShowDialog() != true)
-            return;
-
-        try
-        {
-            IsBusy = true;
-            StatusMessage = "Exporting DOCX...";
-            _logger.LogInformation("Starting DOCX export to {DestinationPath}", dialog.FileName);
-
-            await _docxExportService.ExportAsync(dialog.FileName, ExtractedText);
-
-            StatusMessage = "DOCX exported successfully";
-            _logger.LogInformation("DOCX export completed to {DestinationPath}", dialog.FileName);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Unexpected error during DOCX export";
-            _logger.LogError(ex, "Unexpected error during DOCX export to {DestinationPath}", dialog.FileName);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanGenerateAiSummary))]
-    private async Task GenerateAiSummaryAsync()
-    {
-        try
-        {
-            IsBusy = true;
-            StatusMessage = "Generating AI summary...";
-
-            AiSummaryResult = await _summaryService.SummarizeAsync(ExtractedText);
+            OnPropertyChanged(nameof(AiSummaryPreview));
             OnPropertyChanged(nameof(HasAiSummary));
 
             StatusMessage = "AI summary generated";
@@ -278,7 +221,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = "Unexpected error during AI summary";
-            _logger.LogError(ex, "Unexpected error during AI summary");
+            _logger.LogError(ex, "Unexpected error during AI summary for {FilePath}", SelectedDocument.SourceFilePath);
         }
         finally
         {
@@ -286,34 +229,44 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanExportAiSummaryTxt))]
-    private async Task ExportAiSummaryTxtAsync()
+    [RelayCommand]
+    private async Task GenerateAllAiSummariesAsync()
     {
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Text file (*.txt)|*.txt",
-            FileName = "ai-summary.txt",
-            Title = "Save AI summary"
-        };
-
-        if (dialog.ShowDialog() != true)
+        if (IsBusy || !IsAiSummaryAvailable)
             return;
+
+        var docsToSummarize = Documents
+            .Where(d => !string.IsNullOrWhiteSpace(d.ExtractedText))
+            .ToList();
+
+        if (docsToSummarize.Count == 0)
+        {
+            StatusMessage = "No extracted documents available to summarize";
+            return;
+        }
 
         try
         {
             IsBusy = true;
-            StatusMessage = "Exporting AI summary TXT...";
-            _logger.LogInformation("Starting AI summary TXT export to {DestinationPath}", dialog.FileName);
+            StatusMessage = $"Generating AI summaries for {docsToSummarize.Count} document(s)...";
 
-            await _textExportService.ExportAsync(dialog.FileName, AiSummaryResult);
+            foreach (var document in docsToSummarize)
+            {
+                document.Status = "Generating AI summary...";
+                document.AiSummary = await _summaryService.SummarizeAsync(document.ExtractedText);
+                document.IsAiSummarized = !string.IsNullOrWhiteSpace(document.AiSummary);
+                document.Status = "AI summary generated";
+            }
 
-            StatusMessage = "AI summary TXT exported successfully";
-            _logger.LogInformation("AI summary TXT export completed to {DestinationPath}", dialog.FileName);
+            OnPropertyChanged(nameof(AiSummaryPreview));
+            OnPropertyChanged(nameof(HasAiSummary));
+
+            StatusMessage = "All AI summaries generated";
         }
         catch (Exception ex)
         {
-            StatusMessage = "Unexpected error during AI summary TXT export";
-            _logger.LogError(ex, "Unexpected error during AI summary TXT export to {DestinationPath}", dialog.FileName);
+            StatusMessage = "Unexpected error during AI summaries";
+            _logger.LogError(ex, "Unexpected error during AI summaries");
         }
         finally
         {
@@ -321,38 +274,273 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanExportAiSummaryDocx))]
-    private async Task ExportAiSummaryDocxAsync()
+    [RelayCommand]
+    private async Task ExportSelectedTextTxtAsync()
     {
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Word document (*.docx)|*.docx",
-            FileName = "ai-summary.docx",
-            Title = "Save AI summary as DOCX"
-        };
-
-        if (dialog.ShowDialog() != true)
+        if (SelectedDocument is null || string.IsNullOrWhiteSpace(SelectedDocument.ExtractedText) || IsBusy)
             return;
 
         try
         {
             IsBusy = true;
-            StatusMessage = "Exporting AI summary DOCX...";
-            _logger.LogInformation("Starting AI summary DOCX export to {DestinationPath}", dialog.FileName);
 
-            await _docxExportService.ExportAsync(dialog.FileName, AiSummaryResult);
+            var path = BuildExtractedTextPath(SelectedDocument, ".txt");
+            await _textExportService.ExportAsync(path, SelectedDocument.ExtractedText);
 
-            StatusMessage = "AI summary DOCX exported successfully";
-            _logger.LogInformation("AI summary DOCX export completed to {DestinationPath}", dialog.FileName);
+            StatusMessage = $"Exported: {Path.GetFileName(path)}";
         }
         catch (Exception ex)
         {
-            StatusMessage = "Unexpected error during AI summary DOCX export";
-            _logger.LogError(ex, "Unexpected error during AI summary DOCX export to {DestinationPath}", dialog.FileName);
+            StatusMessage = "Error exporting selected TXT";
+            _logger.LogError(ex, "Error exporting selected extracted TXT");
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task ExportSelectedTextDocxAsync()
+    {
+        if (SelectedDocument is null || string.IsNullOrWhiteSpace(SelectedDocument.ExtractedText) || IsBusy)
+            return;
+
+        try
+        {
+            IsBusy = true;
+
+            var path = BuildExtractedTextPath(SelectedDocument, ".docx");
+            await _docxExportService.ExportAsync(path, SelectedDocument.ExtractedText);
+
+            StatusMessage = $"Exported: {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting selected DOCX";
+            _logger.LogError(ex, "Error exporting selected extracted DOCX");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportAllTextTxtAsync()
+    {
+        if (IsBusy)
+            return;
+
+        var docs = Documents.Where(d => !string.IsNullOrWhiteSpace(d.ExtractedText)).ToList();
+        if (docs.Count == 0)
+        {
+            StatusMessage = "No extracted texts to export";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+
+            foreach (var doc in docs)
+            {
+                var path = BuildExtractedTextPath(doc, ".txt");
+                await _textExportService.ExportAsync(path, doc.ExtractedText);
+            }
+
+            StatusMessage = $"Exported {docs.Count} extracted TXT file(s)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting extracted TXT files";
+            _logger.LogError(ex, "Error exporting all extracted TXT files");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportAllTextDocxAsync()
+    {
+        if (IsBusy)
+            return;
+
+        var docs = Documents.Where(d => !string.IsNullOrWhiteSpace(d.ExtractedText)).ToList();
+        if (docs.Count == 0)
+        {
+            StatusMessage = "No extracted documents to export";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+
+            foreach (var doc in docs)
+            {
+                var path = BuildExtractedTextPath(doc, ".docx");
+                await _docxExportService.ExportAsync(path, doc.ExtractedText);
+            }
+
+            StatusMessage = $"Exported {docs.Count} extracted DOCX file(s)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting extracted DOCX files";
+            _logger.LogError(ex, "Error exporting all extracted DOCX files");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportSelectedAiSummaryTxtAsync()
+    {
+        if (SelectedDocument is null || string.IsNullOrWhiteSpace(SelectedDocument.AiSummary) || IsBusy)
+            return;
+
+        try
+        {
+            IsBusy = true;
+
+            var path = BuildAiSummaryPath(SelectedDocument, ".txt");
+            await _textExportService.ExportAsync(path, SelectedDocument.AiSummary);
+
+            StatusMessage = $"Exported: {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting selected AI summary TXT";
+            _logger.LogError(ex, "Error exporting selected AI summary TXT");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportSelectedAiSummaryDocxAsync()
+    {
+        if (SelectedDocument is null || string.IsNullOrWhiteSpace(SelectedDocument.AiSummary) || IsBusy)
+            return;
+
+        try
+        {
+            IsBusy = true;
+
+            var path = BuildAiSummaryPath(SelectedDocument, ".docx");
+            await _docxExportService.ExportAsync(path, SelectedDocument.AiSummary);
+
+            StatusMessage = $"Exported: {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting selected AI summary DOCX";
+            _logger.LogError(ex, "Error exporting selected AI summary DOCX");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportAllAiSummaryTxtAsync()
+    {
+        if (IsBusy)
+            return;
+
+        var docs = Documents.Where(d => !string.IsNullOrWhiteSpace(d.AiSummary)).ToList();
+        if (docs.Count == 0)
+        {
+            StatusMessage = "No AI summaries to export";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+
+            foreach (var doc in docs)
+            {
+                var path = BuildAiSummaryPath(doc, ".txt");
+                await _textExportService.ExportAsync(path, doc.AiSummary);
+            }
+
+            StatusMessage = $"Exported {docs.Count} AI summary TXT file(s)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting AI summary TXT files";
+            _logger.LogError(ex, "Error exporting all AI summary TXT files");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportAllAiSummaryDocxAsync()
+    {
+        if (IsBusy)
+            return;
+
+        var docs = Documents.Where(d => !string.IsNullOrWhiteSpace(d.AiSummary)).ToList();
+        if (docs.Count == 0)
+        {
+            StatusMessage = "No AI summaries to export";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+
+            foreach (var doc in docs)
+            {
+                var path = BuildAiSummaryPath(doc, ".docx");
+                await _docxExportService.ExportAsync(path, doc.AiSummary);
+            }
+
+            StatusMessage = $"Exported {docs.Count} AI summary DOCX file(s)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Error exporting AI summary DOCX files";
+            _logger.LogError(ex, "Error exporting all AI summary DOCX files");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static string BuildExtractedTextPath(ProcessedPdfItem document, string extension)
+    {
+        var fileName = SanitizeFileName(document.BaseFileName) + extension;
+        return Path.Combine(document.DirectoryPath, fileName);
+    }
+
+    private static string BuildAiSummaryPath(ProcessedPdfItem document, string extension)
+    {
+        var fileName = SanitizeFileName(document.BaseFileName) + "_ai_summary" + extension;
+        return Path.Combine(document.DirectoryPath, fileName);
+    }
+
+    private static string SanitizeFileName(string input)
+    {
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+        {
+            input = input.Replace(invalid, '_');
+        }
+
+        return input;
     }
 }

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace DocForge.Infrastructure.Services;
 
-public class DocxExportService : IDocxExportService
+public sealed class DocxExportService : IDocxExportService
 {
     public Task ExportAsync(string destinationPath, string content, CancellationToken cancellationToken = default)
     {
@@ -24,17 +24,38 @@ public class DocxExportService : IDocxExportService
         mainPart.Document = new Document();
         var body = new Body();
 
-        var lines = (content).Replace("\r\n", "\n").Split('\n');
+        var normalized = (content ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Trim();
 
-        foreach (var line in lines)
+        var blocks = normalized
+            .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var block in blocks)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var paragraph = new Paragraph(new Run(new Text(line)
-            {
-                Space = SpaceProcessingModeValues.Preserve
-            }));
+            var linesInBlock = block
+                .Split('\n', StringSplitOptions.TrimEntries)
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToList();
 
+            var paragraph = new Paragraph();
+            var run = new Run();
+
+            for (int i = 0; i < linesInBlock.Count; i++)
+            {
+                if (i > 0)
+                    run.Append(new Break());
+
+                run.Append(new Text(linesInBlock[i])
+                {
+                    Space = SpaceProcessingModeValues.Preserve
+                });
+            }
+
+            paragraph.Append(run);
             body.Append(paragraph);
         }
 
@@ -43,5 +64,4 @@ public class DocxExportService : IDocxExportService
 
         return Task.CompletedTask;
     }
-    
 }
