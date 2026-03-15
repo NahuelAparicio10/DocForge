@@ -6,6 +6,7 @@ using DocForge.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace DocForge.App;
 
@@ -15,11 +16,20 @@ public partial class App : System.Windows.Application
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.File(
+                "logs/docforge-.log",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7)
+            .CreateLogger();
+
         _host = Host.CreateDefaultBuilder()
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
             })
+            .UseSerilog()
             .ConfigureServices(services =>
             {
                 services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
@@ -33,16 +43,21 @@ public partial class App : System.Windows.Application
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
+
+        Log.Information("Application started");
     }
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        Log.Information("Application shutting down");
+
         if (_host is not null)
         {
             await _host.StopAsync();
             _host.Dispose();
         }
 
+        Log.CloseAndFlush();
         base.OnExit(e);
     }
 }
