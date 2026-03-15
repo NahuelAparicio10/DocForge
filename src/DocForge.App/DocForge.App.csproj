@@ -28,4 +28,9 @@
       <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DocForge.Application\DocForge.Application.csproj" />
+      <ProjectReference Include="..\DocForge.Infrastructure\DocForge.Infrastructure.csproj" />
+    </ItemGroup>
+
 </Project>
