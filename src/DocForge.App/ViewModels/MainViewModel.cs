@@ -4,6 +4,7 @@ using DocForge.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System.IO;
+
 namespace DocForge.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -12,7 +13,21 @@ public partial class MainViewModel : ObservableObject
     private readonly ITextExportService _textExportService;
     private readonly IDocxExportService _docxExportService;
     private readonly ITextStructureReconstructor _textStructureReconstructor;
+    private readonly ISummaryService _summaryService;
     private readonly ILogger<MainViewModel> _logger;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
+    private bool isAiSummaryAvailable;
+
+    [ObservableProperty]
+    private string aiSummaryStatus = "Checking Ollama...";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryTxtCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryDocxCommand))]
+    private string aiSummaryResult = string.Empty;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BrowsePdfCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
@@ -23,6 +38,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
     private string extractedText = string.Empty;
 
     [ObservableProperty]
@@ -33,8 +49,11 @@ public partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GenerateAiSummaryCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryTxtCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportAiSummaryDocxCommand))]
     private bool isBusy;
-    
+
     partial void OnSelectedFilePathChanged(string value)
     {
         OnPropertyChanged(nameof(SelectedFileName));
@@ -53,15 +72,17 @@ public partial class MainViewModel : ObservableObject
         ITextExportService textExportService,
         IDocxExportService docxExportService,
         ITextStructureReconstructor textStructureReconstructor,
+        ISummaryService summaryService,
         ILogger<MainViewModel> logger)
     {
         _pdfTextExtractor = pdfTextExtractor;
         _textExportService = textExportService;
         _docxExportService = docxExportService;
         _textStructureReconstructor = textStructureReconstructor;
+        _summaryService = summaryService;
         _logger = logger;
     }
-    
+
     public string SelectedFileName =>
         string.IsNullOrWhiteSpace(SelectedFilePath)
             ? "No file selected"
@@ -83,6 +104,9 @@ public partial class MainViewModel : ObservableObject
     public bool HasExtractedText =>
         !string.IsNullOrWhiteSpace(ExtractedText);
 
+    public bool HasAiSummary =>
+        !string.IsNullOrWhiteSpace(AiSummaryResult);
+
     public string PreviewPlaceholder =>
         "Extracted text preview will appear here.";
 
@@ -96,6 +120,23 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanExportDocx() =>
         !IsBusy && !string.IsNullOrWhiteSpace(ExtractedText);
+
+    private bool CanGenerateAiSummary() =>
+        !IsBusy && IsAiSummaryAvailable && !string.IsNullOrWhiteSpace(ExtractedText);
+
+    private bool CanExportAiSummaryTxt() =>
+        !IsBusy && !string.IsNullOrWhiteSpace(AiSummaryResult);
+
+    private bool CanExportAiSummaryDocx() =>
+        !IsBusy && !string.IsNullOrWhiteSpace(AiSummaryResult);
+
+    public async Task InitializeAsync()
+    {
+        IsAiSummaryAvailable = await _summaryService.IsAvailableAsync();
+        AiSummaryStatus = IsAiSummaryAvailable
+            ? "Ollama detected"
+            : "AI Summary requires Ollama running locally";
+    }
 
     [RelayCommand(CanExecute = nameof(CanBrowsePdf))]
     private void BrowsePdf()
@@ -134,6 +175,9 @@ public partial class MainViewModel : ObservableObject
             }
 
             ExtractedText = _textStructureReconstructor.Reconstruct(result.ExtractedText);
+            AiSummaryResult = string.Empty;
+            OnPropertyChanged(nameof(HasAiSummary));
+
             StatusMessage = $"Extracted {result.PageCount} pages";
             _logger.LogInformation("Extraction completed for {FilePath}. Pages: {PageCount}", SelectedFilePath, result.PageCount);
         }
@@ -211,6 +255,100 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = "Unexpected error during DOCX export";
             _logger.LogError(ex, "Unexpected error during DOCX export to {DestinationPath}", dialog.FileName);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanGenerateAiSummary))]
+    private async Task GenerateAiSummaryAsync()
+    {
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Generating AI summary...";
+
+            AiSummaryResult = await _summaryService.SummarizeAsync(ExtractedText);
+            OnPropertyChanged(nameof(HasAiSummary));
+
+            StatusMessage = "AI summary generated";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Unexpected error during AI summary";
+            _logger.LogError(ex, "Unexpected error during AI summary");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExportAiSummaryTxt))]
+    private async Task ExportAiSummaryTxtAsync()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = "Text file (*.txt)|*.txt",
+            FileName = "ai-summary.txt",
+            Title = "Save AI summary"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Exporting AI summary TXT...";
+            _logger.LogInformation("Starting AI summary TXT export to {DestinationPath}", dialog.FileName);
+
+            await _textExportService.ExportAsync(dialog.FileName, AiSummaryResult);
+
+            StatusMessage = "AI summary TXT exported successfully";
+            _logger.LogInformation("AI summary TXT export completed to {DestinationPath}", dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Unexpected error during AI summary TXT export";
+            _logger.LogError(ex, "Unexpected error during AI summary TXT export to {DestinationPath}", dialog.FileName);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExportAiSummaryDocx))]
+    private async Task ExportAiSummaryDocxAsync()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = "Word document (*.docx)|*.docx",
+            FileName = "ai-summary.docx",
+            Title = "Save AI summary as DOCX"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Exporting AI summary DOCX...";
+            _logger.LogInformation("Starting AI summary DOCX export to {DestinationPath}", dialog.FileName);
+
+            await _docxExportService.ExportAsync(dialog.FileName, AiSummaryResult);
+
+            StatusMessage = "AI summary DOCX exported successfully";
+            _logger.LogInformation("AI summary DOCX export completed to {DestinationPath}", dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Unexpected error during AI summary DOCX export";
+            _logger.LogError(ex, "Unexpected error during AI summary DOCX export to {DestinationPath}", dialog.FileName);
         }
         finally
         {

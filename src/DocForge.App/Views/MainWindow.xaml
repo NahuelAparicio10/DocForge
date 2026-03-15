@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="{Binding PreviewTitle}"
-        Height="760"
+        Height="900"
         Width="1200"
-        MinHeight="650"
+        MinHeight="760"
         MinWidth="950"
         WindowStartupLocation="CenterScreen">
 
@@ -17,7 +17,9 @@
             <RowDefinition Height="16"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="16"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="16"/>
+            <RowDefinition Height="2.4*"/>
             <RowDefinition Height="16"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -34,7 +36,7 @@
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}"/>
 
-                <TextBlock Text="Extract text from PDF files and export it to TXT or DOCX."
+                <TextBlock Text="Extract text from PDF files, reconstruct paragraphs, export to TXT or DOCX, and generate a local AI summary."
                            Margin="0,6,0,0"
                            FontSize="14"
                            Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -160,7 +162,60 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="6" Style="{StaticResource CardBorderStyle}" Padding="12,10">
+        <Border Grid.Row="6" Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="AI Summary"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="{Binding AiSummaryStatus}"
+                               Margin="0,0,0,10"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                    <WrapPanel Margin="0,0,0,10">
+                        <Button Content="Generate AI Summary"
+                                Command="{Binding GenerateAiSummaryCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Width="170"
+                                IsEnabled="{Binding IsAiSummaryAvailable}" />
+
+                        <Button Content="Export Summary TXT"
+                                Command="{Binding ExportAiSummaryTxtCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Width="165" />
+
+                        <Button Content="Export Summary DOCX"
+                                Command="{Binding ExportAiSummaryDocxCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Width="175"
+                                Margin="0" />
+                    </WrapPanel>
+                </StackPanel>
+
+                <TextBox Grid.Row="4"
+                         Text="{Binding AiSummaryResult}"
+                         Style="{StaticResource ReadOnlyTextBoxStyle}"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         TextWrapping="Wrap"
+                         IsReadOnly="True"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="8" Style="{StaticResource CardBorderStyle}" Padding="12,10">
             <TextBlock Text="{Binding StatusMessage}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondaryBrush}"/>
