@@ -35,7 +35,8 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
                 services.AddSingleton<ITextExportService, TxtExportService>();
                 services.AddSingleton<IDocxExportService, DocxExportService>();
-
+                services.AddSingleton<ITextStructureReconstructor, TextStructureReconstructor>();
+                
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
             })

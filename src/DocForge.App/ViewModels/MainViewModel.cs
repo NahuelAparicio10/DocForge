@@ -4,7 +4,6 @@ using DocForge.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System.IO;
-using System.Linq;
 namespace DocForge.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -12,8 +11,8 @@ public partial class MainViewModel : ObservableObject
     private readonly IPdfTextExtractor _pdfTextExtractor;
     private readonly ITextExportService _textExportService;
     private readonly IDocxExportService _docxExportService;
+    private readonly ITextStructureReconstructor _textStructureReconstructor;
     private readonly ILogger<MainViewModel> _logger;
-
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BrowsePdfCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
@@ -53,11 +52,13 @@ public partial class MainViewModel : ObservableObject
         IPdfTextExtractor pdfTextExtractor,
         ITextExportService textExportService,
         IDocxExportService docxExportService,
+        ITextStructureReconstructor textStructureReconstructor,
         ILogger<MainViewModel> logger)
     {
         _pdfTextExtractor = pdfTextExtractor;
         _textExportService = textExportService;
         _docxExportService = docxExportService;
+        _textStructureReconstructor = textStructureReconstructor;
         _logger = logger;
     }
     
@@ -132,7 +133,7 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            ExtractedText = result.ExtractedText;
+            ExtractedText = _textStructureReconstructor.Reconstruct(result.ExtractedText);
             StatusMessage = $"Extracted {result.PageCount} pages";
             _logger.LogInformation("Extraction completed for {FilePath}. Pages: {PageCount}", SelectedFilePath, result.PageCount);
         }
