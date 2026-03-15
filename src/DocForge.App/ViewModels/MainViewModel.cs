@@ -9,6 +9,7 @@ namespace DocForge.App.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly IPdfTextExtractor _pdfTextExtractor;
+    private readonly ITextExportService _textExportService;
 
     [ObservableProperty]
     private string selectedFilePath = string.Empty;
@@ -25,6 +26,7 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         _pdfTextExtractor = new PdfPigTextExtractor();
+        _textExportService = new TxtExportService();
     }
 
     [RelayCommand]
@@ -80,8 +82,40 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ExportTxt()
+    private async Task ExportTxtAsync()
     {
-        StatusMessage = "TXT export will be implemented next";
+        if (string.IsNullOrWhiteSpace(ExtractedText))
+        {
+            StatusMessage = "There is no extracted text to export";
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Filter = "Text file (*.txt)|*.txt",
+            FileName = "extracted-text.txt",
+            Title = "Save extracted text"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Exporting TXT...";
+
+            await _textExportService.ExportAsync(dialog.FileName, ExtractedText);
+
+            StatusMessage = "TXT exported successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
