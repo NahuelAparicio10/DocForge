@@ -3,7 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using DocForge.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-
+using System.IO;
+using System.Linq;
 namespace DocForge.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -34,6 +35,19 @@ public partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ExportTxtCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportDocxCommand))]
     private bool isBusy;
+    
+    partial void OnSelectedFilePathChanged(string value)
+    {
+        OnPropertyChanged(nameof(SelectedFileName));
+        OnPropertyChanged(nameof(PreviewTitle));
+    }
+
+    partial void OnExtractedTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(ExtractedCharacterCount));
+        OnPropertyChanged(nameof(ExtractedLineCount));
+        OnPropertyChanged(nameof(HasExtractedText));
+    }
 
     public MainViewModel(
         IPdfTextExtractor pdfTextExtractor,
@@ -46,6 +60,30 @@ public partial class MainViewModel : ObservableObject
         _docxExportService = docxExportService;
         _logger = logger;
     }
+    
+    public string SelectedFileName =>
+        string.IsNullOrWhiteSpace(SelectedFilePath)
+            ? "No file selected"
+            : Path.GetFileName(SelectedFilePath);
+
+    public string PreviewTitle =>
+        string.IsNullOrWhiteSpace(SelectedFilePath)
+            ? "DocForge"
+            : $"DocForge - {Path.GetFileName(SelectedFilePath)}";
+
+    public int ExtractedCharacterCount =>
+        string.IsNullOrEmpty(ExtractedText) ? 0 : ExtractedText.Length;
+
+    public int ExtractedLineCount =>
+        string.IsNullOrWhiteSpace(ExtractedText)
+            ? 0
+            : ExtractedText.Replace("\r\n", "\n").Split('\n').Length;
+
+    public bool HasExtractedText =>
+        !string.IsNullOrWhiteSpace(ExtractedText);
+
+    public string PreviewPlaceholder =>
+        "Extracted text preview will appear here.";
 
     private bool CanBrowsePdf() => !IsBusy;
 

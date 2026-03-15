@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="DocForge"
+        Title="{Binding PreviewTitle}"
         Height="760"
         Width="1200"
         MinHeight="650"
@@ -57,6 +57,12 @@
                            Foreground="{StaticResource TextPrimaryBrush}"
                            Margin="0,0,0,10"/>
 
+                <TextBlock Text="{Binding SelectedFileName}"
+                           Margin="0,0,0,8"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
                 <TextBox Text="{Binding SelectedFilePath}"
                          Style="{StaticResource ReadOnlyTextBoxStyle}"
                          IsReadOnly="True"
@@ -93,21 +99,64 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Extracted Text Preview"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Row="2"
-                         Text="{Binding ExtractedText}"
-                         Style="{StaticResource ReadOnlyTextBoxStyle}"
-                         AcceptsReturn="True"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         TextWrapping="Wrap"
-                         IsReadOnly="True"/>
+                    <TextBlock Text="Extracted Text Preview"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="{Binding ExtractedLineCount, StringFormat=Lines: {0}}"
+                                   Margin="0,0,12,0"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                        <TextBlock Text="{Binding ExtractedCharacterCount, StringFormat=Characters: {0}}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="2">
+                    <TextBox Text="{Binding ExtractedText}"
+                             Style="{StaticResource ReadOnlyTextBoxStyle}"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             TextWrapping="Wrap"
+                             IsReadOnly="True"/>
+
+                    <TextBlock Text="{Binding PreviewPlaceholder}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasExtractedText}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <TextBlock Grid.Row="4"
+                           Text="The preview reflects the extracted embedded text from the selected PDF."
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
             </Grid>
         </Border>
 
