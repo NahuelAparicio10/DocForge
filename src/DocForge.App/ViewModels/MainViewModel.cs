@@ -1,11 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DocForge.Application.Abstractions;
+using DocForge.Infrastructure.Services;
 using Microsoft.Win32;
 
 namespace DocForge.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly IPdfTextExtractor _pdfTextExtractor;
+
     [ObservableProperty]
     private string selectedFilePath = string.Empty;
 
@@ -14,6 +18,14 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string statusMessage = "Ready";
+
+    [ObservableProperty]
+    private bool isBusy;
+
+    public MainViewModel()
+    {
+        _pdfTextExtractor = new PdfPigTextExtractor();
+    }
 
     [RelayCommand]
     private void BrowsePdf()
@@ -33,7 +45,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ExtractText()
+    private async Task ExtractTextAsync()
     {
         if (string.IsNullOrWhiteSpace(SelectedFilePath))
         {
@@ -41,13 +53,35 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        ExtractedText = $"Selected PDF:{Environment.NewLine}{SelectedFilePath}";
-        StatusMessage = "Extraction placeholder executed";
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Extracting text...";
+
+            var result = await _pdfTextExtractor.ExtractTextAsync(SelectedFilePath);
+
+            if (!result.Success)
+            {
+                StatusMessage = result.ErrorMessage ?? "Extraction failed";
+                return;
+            }
+
+            ExtractedText = result.ExtractedText;
+            StatusMessage = $"Extracted {result.PageCount} pages";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
     private void ExportTxt()
     {
-        StatusMessage = "Export TXT clicked";
+        StatusMessage = "TXT export will be implemented next";
     }
 }
