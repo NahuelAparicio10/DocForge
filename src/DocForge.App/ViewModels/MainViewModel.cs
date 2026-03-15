@@ -9,6 +9,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IPdfTextExtractor _pdfTextExtractor;
     private readonly ITextExportService _textExportService;
+    private readonly IDocxExportService _docxExportService;
 
     [ObservableProperty]
     private string selectedFilePath = string.Empty;
@@ -22,10 +23,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool isBusy;
 
-    public MainViewModel(IPdfTextExtractor pdfTextExtractor, ITextExportService textExportService)
+    public MainViewModel(
+        IPdfTextExtractor pdfTextExtractor,
+        ITextExportService textExportService,
+        IDocxExportService docxExportService)
     {
         _pdfTextExtractor = pdfTextExtractor;
         _textExportService = textExportService;
+        _docxExportService = docxExportService;
     }
 
     [RelayCommand]
@@ -107,6 +112,44 @@ public partial class MainViewModel : ObservableObject
             await _textExportService.ExportAsync(dialog.FileName, ExtractedText);
 
             StatusMessage = "TXT exported successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportDocxAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ExtractedText))
+        {
+            StatusMessage = "There is no extracted text to export";
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Filter = "Word document (*.docx)|*.docx",
+            FileName = "extracted-text.docx",
+            Title = "Save extracted text as DOCX"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Exporting DOCX...";
+
+            await _docxExportService.ExportAsync(dialog.FileName, ExtractedText);
+
+            StatusMessage = "DOCX exported successfully";
         }
         catch (Exception ex)
         {
