@@ -5,67 +5,116 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="DocForge"
-        Height="700"
-        Width="1100"
+        Height="760"
+        Width="1200"
+        MinHeight="650"
+        MinWidth="950"
         WindowStartupLocation="CenterScreen">
-    <Grid Margin="16">
+
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="16"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="16"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="16"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="DocForge"
-                   FontSize="28"
-                   FontWeight="Bold"
-                   Margin="0,0,0,16"/>
-        
-        <TextBlock Grid.Row="0"
-                   HorizontalAlignment="Right"
-                   VerticalAlignment="Center"
-                   Text="{Binding IsBusy, StringFormat=Working: {0}}"
-                   FontSize="12"/>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="1"
-                    Margin="0,0,0,16">
-            <TextBox Text="{Binding SelectedFilePath}"
-                     IsReadOnly="True"
-                     Margin="0,0,0,8"/>
+            <StackPanel>
+                <TextBlock Text="DocForge"
+                           FontSize="30"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
 
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Browse PDF"
-                        Command="{Binding BrowsePdfCommand}"
-                        Width="120"
-                        Margin="0,0,8,0"/>
-
-                <Button Content="Extract Text"
-                        Command="{Binding ExtractTextCommand}"
-                        Width="120"
-                        Margin="0,0,8,0"/>
-
-                <Button Content="Export TXT"
-                        Command="{Binding ExportTxtCommand}"
-                        Width="120"/>
-                
-                <Button Content="Export DOCX"
-                        Command="{Binding ExportDocxCommand}"
-                        Width="120"
-                        Margin="8,0,0,0"/>
+                <TextBlock Text="Extract text from PDF files and export it to TXT or DOCX."
+                           Margin="0,6,0,0"
+                           FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
             </StackPanel>
-        </StackPanel>
 
-        <TextBox Grid.Row="2"
-                 Text="{Binding ExtractedText}"
-                 AcceptsReturn="True"
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalScrollBarVisibility="Auto"
-                 TextWrapping="Wrap"
-                 IsReadOnly="True"/>
+            <Border Grid.Column="1"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="12,8">
+                <TextBlock Text="{Binding IsBusy, StringFormat=Working: {0}}"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </Border>
+        </Grid>
 
-        <StatusBar Grid.Row="3" Margin="0,12,0,0">
-            <StatusBarItem Content="{Binding StatusMessage}" />
-        </StatusBar>
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+            <StackPanel>
+                <TextBlock Text="Selected PDF"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Margin="0,0,0,10"/>
+
+                <TextBox Text="{Binding SelectedFilePath}"
+                         Style="{StaticResource ReadOnlyTextBoxStyle}"
+                         IsReadOnly="True"
+                         Margin="0,0,0,12"/>
+
+                <WrapPanel>
+                    <Button Content="Browse PDF"
+                            Command="{Binding BrowsePdfCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Width="130"/>
+
+                    <Button Content="Extract Text"
+                            Command="{Binding ExtractTextCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="130"/>
+
+                    <Button Content="Export TXT"
+                            Command="{Binding ExportTxtCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="130"/>
+
+                    <Button Content="Export DOCX"
+                            Command="{Binding ExportDocxCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Width="130"
+                            Margin="0"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Extracted Text Preview"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                <TextBox Grid.Row="2"
+                         Text="{Binding ExtractedText}"
+                         Style="{StaticResource ReadOnlyTextBoxStyle}"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         TextWrapping="Wrap"
+                         IsReadOnly="True"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="6" Style="{StaticResource CardBorderStyle}" Padding="12,10">
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       Foreground="{StaticResource TextSecondaryBrush}"/>
+        </Border>
     </Grid>
 </Window>
