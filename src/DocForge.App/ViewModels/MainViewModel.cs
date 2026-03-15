@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DocForge.Application.Abstractions;
-using DocForge.Infrastructure.Services;
 using Microsoft.Win32;
 
 namespace DocForge.App.ViewModels;
@@ -23,10 +22,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool isBusy;
 
-    public MainViewModel()
+    public MainViewModel(IPdfTextExtractor pdfTextExtractor, ITextExportService textExportService)
     {
-        _pdfTextExtractor = new PdfPigTextExtractor();
-        _textExportService = new TxtExportService();
+        _pdfTextExtractor = pdfTextExtractor;
+        _textExportService = textExportService;
     }
 
     [RelayCommand]
